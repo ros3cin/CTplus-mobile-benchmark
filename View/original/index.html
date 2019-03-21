@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Experiment Dashboard</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+	<div id="dashboard">
+		<h2>Dashboard</h2>
+		<ul class="info">
+			<li>
+				<div class="label">Current counter:</div>
+				<div id="currentCounter" class="value">N/A</div>
+			</li>
+			<li>
+				<div class="label">Until:</div>
+				<div id="counterEnd" class="value">N/A</div>
+			</li>
+			<li>
+				<div class="label">Current experiment:</div>
+				<div id="currentTest" class="value">N/A</div>
+			</li>
+			<li>
+				<div class="label">Language:</div>
+				<div id="language" class="value">N/A</div>
+			</li>
+			<li>
+				<div class="label">Device:</div>
+				<div id="device" class="value">N/A</div>
+			</li>
+			<li>
+				<div class="label">Is app running?:</div>
+				<div id="isAppRunning" class="value">Not implemented</div>
+			</li>
+			<li>
+				<div class="label">Experiment status:</div>
+				<div id="isExperimentStopped" class="value">N/A</div>
+			</li>
+		</ul>
+	</div>
+	<div id="log">
+		<h2>Log</h2>
+		<div id="logbox">
+			<ul id="logList">
+			</ul>
+		</div>
+	</div>
+	<div id="actionsPanel">
+		<h2>Actions</h2>
+		<button onclick="startExperiment()">Start experiment</button>
+		<button onclick="stopExperiment()">Stop experiment</button>
+		<button onclick="listDevices()">List devices</button>
+		<button onclick="showDeviceIpAddress()">Show device IP address</button>
+		<button onclick="wakeUpDevice()">Wake up device</button>
+	</div>
+	<div id="settingsPanel">
+		<h2>Settings</h2>
+		<fieldset>
+			<ul class="form">
+			<li>
+				<div class="label">Initial counter:</div>
+				<input id="inpInitialCounter" class="value" type="number" min="0" ></input>
+			</li>
+			<li>
+				<div class="label">Ending counter:</div>
+				<input id="inpEndingCounter" class="value" type="number" min="0" ></input>
+			</li>
+			<li>
+				<div class="label">Experiment name:</div>
+				<input id="inpExperimentName" class="value" type="text"></input>
+			</li>
+			<li>
+				<div class="label">Device:</div>
+				<input id="inpDevice" class="value" type="text"></input>
+			</li>
+			<li>
+				<div class="label">Language:</div>
+				<input id="inpLanguage" class="value" type="text"></input>
+			</li>
+		</ul>
+		<button id="changeSettingsButton" onclick="changeSettings()">Change experiment settings</button>
+		</fieldset>
+	</div> 
+</body>
+
+<script>
+var refreshTimeout=1000;
+function addToLog(text){
+	var newItem = document.createElement("li");
+	var text = document.createTextNode(text); 
+	newItem.appendChild(text);
+	document.getElementById("logList").appendChild(newItem);
+	var logbox = document.getElementById("logbox");
+	logbox.scrollTop=logbox.scrollHeight;
+}
+function addResponseToLog(){
+	if (this.readyState == 4 && this.status == 200) {
+		addToLog(this.responseText);
+	}
+}
+function ajaxRequest(method,url,callbackMethod){
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = callbackMethod;
+  	xhttp.open(method, url, true);
+  	xhttp.send();
+}
+function enableDisableSettingsButton(enable){
+	document.getElementById("changeSettingsButton").disabled=enable;
+}
+function onRefreshPage() {
+	if (this.readyState == 4 && this.status == 200) {
+    	var response = JSON.parse(this.responseText);
+    	document.getElementById("currentCounter").innerHTML=response.counter.current;
+    	document.getElementById("counterEnd").innerHTML=response.counter.until;
+    	document.getElementById("currentTest").innerHTML=response.currentTest.name;
+    	document.getElementById("isExperimentStopped").innerHTML=response.stop?"Stopped":"Running";
+    	document.getElementById("language").innerHTML=response.language;
+    	document.getElementById("device").innerHTML=response.device;
+    	enableDisableSettingsButton(!response.stop);
+    } else {
+    	if(this.readyState == undefined)
+    		addToLog("Error on data refresh! Info:"+this.readyState+" "+this.status);
+    }
+}
+function refreshPage(){
+  	ajaxRequest("GET","/info",onRefreshPage);
+}
+function changeSettings(){
+	var initialCounter = document.getElementById("inpInitialCounter").value;
+	var endingCounter = document.getElementById("inpEndingCounter").value;
+	var experimentName = document.getElementById("inpExperimentName").value;
+	var device = document.getElementById("inpDevice").value;
+	var language = document.getElementById("inpLanguage").value;
+	var urlParameters = "dummy=dummy";
+
+	if( (initialCounter != undefined) && (initialCounter != "") )
+		urlParameters+="&counter="+initialCounter;
+
+	if( (endingCounter != undefined) && (endingCounter != "") )
+		urlParameters+="&until="+endingCounter;
+
+	if( (experimentName != undefined) && (experimentName != "") )
+		urlParameters+="&choosenTest="+experimentName;
+
+	if( (device != undefined) && (device != "") )
+		urlParameters+="&device="+device;
+
+	if( (language != undefined) && (language != "") )
+		urlParameters+="&language="+language;
+
+  	ajaxRequest("GET","/set?"+urlParameters,addResponseToLog);
+}
+
+function startExperiment(){
+  	ajaxRequest("GET","/start",addResponseToLog);
+}
+function stopExperiment(){
+	ajaxRequest("GET","/stop",addResponseToLog);
+}
+function listDevices(){
+	ajaxRequest("GET","/list_devices",addResponseToLog);
+}
+function showDeviceIpAddress(){
+	ajaxRequest("GET","/show_device_ip_address",addResponseToLog);
+}
+function wakeUpDevice(){
+	ajaxRequest("GET","/wake_up_device",addResponseToLog);	
+}
+
+setInterval(refreshPage,refreshTimeout);
+</script>
+
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Experiment Dashboard</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+	<div class=container  id="bigdiv">	
+		<div id="settingsPanel" class=fixed>
+			<h2>Settings</h2>
+			<fieldset>
+				
+				<div class=container>
+					<div id="labels" class=fixed>
+						<div>Initial counter:</div>
+						<div>Ending counter:</div>
+						<div>Benchmark:</div>
+						<div>Device:</div>	
+						<div>Number of warm-up iterations:</div>
+						<div>Number of iterations:</div>
+					</div>
+					
+					<div id="flex" class=flex-item>
+					
+						<ul class="form">
+							<li>	
+								<input id="inpInitialCounter" class="value" type="number" min="0", value="1" ></input>
+							</li>
+							<li>
+								<input id="inpEndingCounter" class="value" type="number" min="0", value="30"></input>
+							</li>
+							<li>
+								<div class=container id="containerExp">
+									<select id="inpExperimentName">
+										<option class="list" value="Gson" data-application-id="br.ufpe.cin.androidapplicationsbenchmark" data-main-activity=".MainActivity">Gson</option>
+										<option class="list" value="Xstream" data-application-id="br.ufpe.cin.androidapplicationsbenchmark" data-main-activity=".MainActivity">Xstream</option>
+										<option class="list" value="CommonsMath" data-application-id="br.ufpe.cin.androidapplicationsbenchmark" data-main-activity=".MainActivity">CommonsMath</option>
+										<option class="list" value="PasswordGenerator" data-application-id="org.secuso.privacyfriendlypasswordgenerator" data-main-activity=".activities.MainActivity">PasswordGenerator</option>
+										<option class="list" value="FastSearch" data-application-id="org.ligi.faster" data-main-activity="org.ligi.fast.ui.SearchActivity">FastSearch</option>
+									</select>
+								</div>
+							</li>
+							<li>
+								<input id="inpDevice" class="value" type="text", value="S8"></input>
+							</li>
+							<li>
+								<input id="inpNWarmUpIter" class="value" type="number", value=""></input>
+							</li>
+							<li>
+								<input id="inpNIterations" class="value" type="number", value=""></input>
+							</li>
+						</ul>
+					</div>
+
+				<div id="divbutton">
+					<button id="changeSettingsButton" onclick="changeSettings()">Change experiment settings</button>
+				</div>
+			</fieldset>
+		</div>
+		<div id="dashboard" class="flex-item">
+			<h2>Dashboard</h2>
+
+			<div id="containerlabels2" class=container>
+				<div id="labels2" class=fixed>
+					<div>Current counter:</div>
+					<div>Until:</div>
+					<div>Benchmark:</div>
+					<div>Language:</div>
+					<div>Device:</div>
+					<div>Experiment status:</div>
+					<div>Number of warm-up iterations:</div>
+					<div>Number of iterations:</div>
+				</div>
+				<div class=flex-item id="anotherflex">
+					<ul id="another" class="info">
+						<li>
+							<div id="currentCounter" class="value">N/A</div>
+						</li>
+						<li>
+							<div id="counterEnd" class="value">N/A</div>
+						</li>
+						<li>					
+							<div id="currentTest" class="value">N/A</div>
+						</li>
+						<li>					
+							<div id="language" class="value">Java</div>
+						</li>
+						<li>					
+							<div id="device" class="value">N/A</div>
+						</li>
+						<li>					
+							<div id="isExperimentStopped" class="value">N/A</div>
+						</li>
+						<li>					
+							<div id="viewNWarmUpIter" class="value">N/A</div>
+						</li>
+						<li>					
+							<div id="viewNIter" class="value">N/A</div>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<div class=container>
+			<div id="actionsPanel" class=fixed>
+				<h2>Actions</h2>
+				<div class="container">
+				<button onclick="startExperiment()">Start experiment</button>
+				<button onclick="stopExperiment()">Stop experiment</button>
+				<button onclick="listDevices()">List devices</button>
+				<button onclick="showDeviceIpAddress()">Show device IP address</button>
+				<button onclick="wakeUpDevice()">Wake up device</button>
+				<button onclick="fullRun()">Run all the benchmarks starting from the current one</button>
+				<button onclick="installApkBtnClicked()">Pick APK to install</button>
+				</div>
+			</div>
+			<div id="log" class="flex-item">
+				<h2>Log</h2>
+				<div id="logbox">
+					<ul id="logList">
+					</ul>
+				</div>
+			</div>
+			<input type="file" onchange="installApk(event)" id="fileInp" style="display: none"/>
+	</div>	
+
+</body>
+
+<script>
+var refreshTimeout=1000;
+function installApkBtnClicked(){
+	document.getElementById("fileInp").value = "";
+	document.getElementById("fileInp").click();
+}
+function installApk(event){
+	let file = event.target.files[0];
+	if(file) {
+		ajaxRequest("GET",`/install_apk?file_path=${file.name}`,addResponseToLog);
+	}
+}
+function addToLog(text){
+	var newItem = document.createElement("li");
+	if(text.includes("Error")){
+		newItem.className = "error";
+	}
+	var text = document.createTextNode(text);
+	newItem.appendChild(text);
+	document.getElementById("logList").appendChild(newItem);
+	var logbox = document.getElementById("logbox");
+	logbox.scrollTop=logbox.scrollHeight;
+}
+function addResponseToLog(){
+	if (this.readyState == 4 && this.status == 200) {
+		addToLog(this.responseText);
+	}
+}
+function ajaxRequest(method,url,callbackMethod){
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = callbackMethod;
+  	xhttp.open(method, url, true);
+  	xhttp.send();
+}
+function enableDisableSettingsButton(enable){
+	document.getElementById("changeSettingsButton").disabled=enable;
+}
+function onRefreshPage() {
+	if (this.readyState == 4 && this.status == 200) {
+    	var response = JSON.parse(this.responseText);
+    	document.getElementById("currentCounter").innerHTML=response.counter.current;
+    	document.getElementById("counterEnd").innerHTML=response.counter.until;
+    	document.getElementById("currentTest").innerHTML=response.currentTest;
+    	document.getElementById("isExperimentStopped").innerHTML=response.stop?"Stopped":"Running";
+    	//document.getElementById("language").innerHTML=response.language;
+    	document.getElementById("device").innerHTML=response.device;
+    	document.getElementById("viewNWarmUpIter").innerHTML=response.nWarmUpIterations;
+    	document.getElementById("viewNIter").innerHTML=response.nIterations;
+    	enableDisableSettingsButton(!response.stop);
+    } else {
+    	if(this.readyState == undefined)
+    		addToLog("Error on data refresh! Info:"+this.readyState+" "+this.status);
+    }
+}
+function refreshPage(){
+  	ajaxRequest("GET","/info",onRefreshPage);
+}
+function changeSettings(){
+	var initialCounter = document.getElementById("inpInitialCounter").value;
+	var endingCounter = document.getElementById("inpEndingCounter").value;
+	var experimentName = document.getElementById("inpExperimentName").value;
+	var selectedExperiment = document.getElementById("inpExperimentName").options[document.getElementById("inpExperimentName").selectedIndex];
+	var experimentFullName = selectedExperiment.text;
+	var experimentApplicationId = selectedExperiment.getAttribute("data-application-id");
+	var experimentMainActivity = selectedExperiment.getAttribute("data-main-activity");
+	var device = document.getElementById("inpDevice").value;
+	var language = "Java";
+	var urlParameters = "dummy=dummy";
+	var nWarmUpIterations = document.getElementById("inpNWarmUpIter").value;
+	var nIterations = document.getElementById("inpNIterations").value;
+
+	if( (initialCounter != undefined) && (initialCounter != "") )
+		urlParameters+="&counter="+initialCounter;
+
+	if( (endingCounter != undefined) && (endingCounter != "") )
+		urlParameters+="&until="+endingCounter;
+
+	if( (experimentName != undefined) && (experimentName != "") )
+		urlParameters+="&choosenTest="+experimentName;
+
+	if( (experimentFullName != undefined) && (experimentFullName != "") )
+		urlParameters+="&fullName="+experimentFullName;
+
+	if( (device != undefined) && (device != "") )
+		urlParameters+="&device="+device;
+
+	if( (language != undefined) && (language != "") )
+		urlParameters+="&language="+language;
+
+	if( nWarmUpIterations && (nWarmUpIterations != "") )
+		urlParameters+="&nWarmUpIterations="+nWarmUpIterations;
+
+	if( nIterations && (nIterations != "") )
+		urlParameters+="&nIterations="+nIterations;
+	
+	if(experimentApplicationId && (experimentApplicationId !== ""))
+		urlParameters+="&applicationId="+encodeURI(experimentApplicationId);
+
+	if(experimentMainActivity && (experimentMainActivity !== ""))
+		urlParameters+="&mainActivity="+encodeURI(experimentMainActivity);
+
+  	ajaxRequest("GET","/set?"+urlParameters,addResponseToLog);
+}
+
+function startExperiment(){
+  	ajaxRequest("GET","/start",addResponseToLog);
+}
+function fullRun(){
+  	ajaxRequest("GET","/full_run",addResponseToLog);
+}
+function stopExperiment(){
+	ajaxRequest("GET","/stop",addResponseToLog);
+}
+function listDevices(){
+	ajaxRequest("GET","/list_devices",addResponseToLog);
+}
+function showDeviceIpAddress(){
+	ajaxRequest("GET","/show_device_ip_address",addResponseToLog);
+}
+function wakeUpDevice(){
+	ajaxRequest("GET","/wake_up_device",addResponseToLog);	
+}
+
+setInterval(refreshPage,refreshTimeout);
+
+</script>
+
+</html>
